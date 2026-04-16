@@ -1,0 +1,38 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<omp.h>
+
+int main(){
+   int size,i;
+   printf("**** Addition of two large array using parallel for  ****\n");
+   printf("Enter the size of two arrays:");
+   scanf("%d",&size);
+
+   int arr1[size],arr2[size],res[size];
+
+   printf("Array 1:\n\n");
+   for(i=0;i<size;i++){
+      arr1[i] = (rand()%10)+1;
+      printf("%d ",arr1[i]);
+   }
+   printf("\n\n");
+
+   printf("Array 2:\n\n");
+   for(i=0;i<size;i++){
+      arr2[i] = (rand()%10)+1;
+      printf("%d ",arr2[i]);
+   }
+   printf("\n\n");
+
+# pragma omp parallel for
+   for(i=0;i<size;i++){
+      res[i] = arr1[i] + arr2[i];
+   }
+
+   printf("*** Resultant Array ***\n\n");
+   for(i=0;i<size;i++){
+      printf("%d ",res[i]);
+   }
+   printf("\n\n");
+   return 0;
+}
