@@ -1,0 +1,36 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<omp.h>
+
+int main(){
+   int size,i;
+   printf("\n**** To find the minimum element of the subarray ****\n\n");
+   printf("Enter the size of the array:");
+   scanf("%d",&size);
+   int arr[size],res[size];
+   printf("\n");
+
+   for(i =0;i<size;i++){
+      scanf("%d",&arr[i]);
+   }
+
+   int thread_count = size/2;
+   res[0] = arr[0];
+#pragma omp parallel for num_threads(thread_count)
+
+   for(i=1;i<size;i++){
+      if(res[i-1]>arr[i]){
+         res[i] = arr[i];
+      }
+      else{
+         res[i] = res[i-1];
+      }
+   }
+
+   printf("\n*** Resultant Array ***\n\n[");
+   for(i=0;i<size;i++){
+      printf("%d ",res[i]);
+   }
+   printf("]\n\n");
+   return 0;
+}
