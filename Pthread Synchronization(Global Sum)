@@ -1,0 +1,59 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<pthread.h>
+#define MAX 1000
+
+int arr[MAX];
+int n,i,thread_count;
+long global_sum=0;
+
+void* partial_sum(void* rank){
+   long my_rank = (long)rank;
+   int local_n=n/thread_count;
+   int first = my_rank*local_n;
+   int last = first+local_n-1;
+   if(last == n-2){
+      last+=1;
+   }
+   long local_sum=0;
+
+   printf("Thread %ld,Firstindex=%d,Lastindex=%d\n\n",my_rank,first,last);
+   for(i=first;i<=last;i++){
+      local_sum += arr[i];
+   }
+   global_sum += local_sum;
+   pthread_exit(NULL);
+}
+
+int main(){
+   pthread_t *thread_handler;
+   long thread;
+
+   printf("\n**** Sum of N Natural Numbers ****\n\n");
+   printf("Enter the Number of elements:");
+   scanf("%d",&n);
+   printf("\n");
+   printf("Enter the Number of threads:");
+   scanf("%d",&thread_count);
+   printf("\n");
+
+   printf("Enter the Elements:");
+   for(i=0;i<n;i++){
+      scanf("%d",&arr[i]);
+   }
+   printf("\n");
+
+   thread_handler = malloc(thread_count*sizeof(pthread_t));
+
+   for(thread=0;thread<thread_count;thread++){
+      pthread_create(&thread_handler[thread],NULL,partial_sum,(void*)thread);
+   }
+   for(thread=0;thread<thread_count;thread++){
+      pthread_join(thread_handler[thread],NULL);
+   }
+
+   printf("Total Sum: %d\n\n",global_sum);
+   free(thread_handler);
+
+   return 0;
+}
