@@ -1,0 +1,110 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<mpi.h>
+
+#define MAX_LEN 20
+
+typedef struct{
+   char name[MAX_LEN];
+   int rollNo;
+   int total;
+   char grade;
+}Student;
+
+char findGrade(int marks){
+   if(marks>=90){
+      return 'O';
+   }
+   else if(marks >= 75){
+      return 'A';
+   }
+   else if(marks >=60){
+      return 'B';
+   }
+   else{
+      return 'U';
+   }
+}
+
+int main(){
+   int rank,size,n,i;
+   Student *stud = NULL;
+   Student *local_stud ;
+   int local_n;
+
+   MPI_Init(NULL,NULL);
+   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+   MPI_Comm_size(MPI_COMM_WORLD,&size);
+
+   if(rank == 0){
+      FILE *fp = fopen("Student.txt","r");
+
+      if(fp == NULL){
+         printf("Error Opening file\n");
+         MPI_Abort(MPI_COMM_WORLD,1);
+      }
+
+      fscanf(fp,"%d",&n);
+      stud = (Student*)malloc(n*sizeof(Student));
+
+      for(i=0;i<n;i++){
+         fscanf(fp,"%s %d %d",stud[i].name,&stud[i].rollNo,&stud[i].total);
+      }
+
+      fclose(fp);
+   }
+
+   MPI_Bcast(&n,1,MPI_INT,0,MPI_COMM_WORLD);
+
+   local_n = n/size;
+   local_stud = (Student*)malloc(local_n*sizeof(Student));
+
+   MPI_Datatype MPI_STUDENT;
+   int blocklengths[4] = {MAX_LEN,1,1,1};
+   MPI_Aint displacement[4];
+   MPI_Datatype types[4] = {MPI_CHAR,MPI_INT,MPI_INT,MPI_CHAR};
+
+   Student temp;
+   MPI_Aint base;
+   MPI_Get_address(&temp,&base);
+   MPI_Get_address(&temp.name,&displacement[0]);
+   MPI_Get_address(&temp.rollNo,&displacement[1]);
+   MPI_Get_address(&temp.total,&displacement[2]);
+   MPI_Get_address(&temp.grade,&displacement[3]);
+
+   for(i=0;i<4;i++){
+      displacement[i] -= base;
+   }
+
+   MPI_Type_create_struct(4,blocklengths,displacement,types,&MPI_STUDENT);
+   MPI_Type_commit(&MPI_STUDENT);
+   MPI_Scatter(stud,local_n,MPI_STUDENT,local_stud,local_n,MPI_STUDENT,0,MPI_COMM_WORLD);
+
+   for(i=0;i<local_n;i++){
+      local_stud[i].grade = findGrade(local_stud[i].total);
+   }
+
+   MPI_Gather(local_stud,local_n,MPI_STUDENT,stud,local_n,MPI_STUDENT,0,MPI_COMM_WORLD);
+
+   if(rank == 0){
+
+      FILE *fp = fopen("Grade.txt","w");
+
+      fprintf(fp,"Name\tRollNumber\tMarks\tGrade\n");
+      for(i=0;i<n;i++){
+         fprintf(fp,"%s\t%d\t%d\t%c\t\n",stud[i].name,stud[i].rollNo,stud[i].total,stud[i].grade);
+      }
+
+      fclose(fp);
+      printf("Grade written into the File named as \"Grade.txt\"\n");
+   }
+
+   MPI_Type_free(&MPI_STUDENT);
+   free(local_stud);
+   if(rank == 0){
+      free(stud);
+   }
+   MPI_Finalize();
+   return 0;
+}
